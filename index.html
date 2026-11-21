@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Torch Live Remote</title>
+    <style>
+        body { background: #090d16; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box; overflow: hidden; }
+        h3 { color: #38bdf8; margin: 5px 0; font-size: 18px; }
+        .status { background: rgba(56,189,248,0.1); color: #38bdf8; padding: 5px 12px; font-size: 12px; font-weight: bold; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3); margin-bottom: 8px; }
+        .viewport { flex-grow: 1; display: flex; justify-content: center; align-items: center; width: 100%; max-height: calc(100vh - 80px); }
+        img { max-height: 80vh; max-width: 100%; width: auto; height: auto; object-fit: contain; border: 2px solid #38bdf8; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 25px rgba(0,0,0,0.8); -webkit-user-select: none; user-select: none; touch-action: none; }
+    </style>
+</head>
+<body>
+    <h3>Torch Live Touch Remote</h3>
+    <div class="status">🟢 LIVE 20 FPS STREAM ACTIVE • Tap / Drag to Control</div>
+    <div class="viewport">
+        <img id="remoteView" src="" />
+    </div>
+    <script>
+        let isDragging = false, startX = 0, startY = 0, isStreaming = true;
+        const img = document.getElementById('remoteView');
+        const urlParams = new URLSearchParams(window.location.search);
+        const hostUrl = urlParams.get('host') || '';
+
+        function autoStream() {
+            if (!isStreaming) return;
+            const nextImg = new Image();
+            nextImg.onload = function() {
+                img.src = nextImg.src;
+                if (isStreaming) setTimeout(autoStream, 50);
+            };
+            nextImg.onerror = function() {
+                if (isStreaming) setTimeout(autoStream, 200);
+            };
+            nextImg.src = hostUrl + '/frame?t=' + new Date().getTime();
+        }
+        if (hostUrl) autoStream();
+
+        img.addEventListener('click', function(e) {
+            const rect = img.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            fetch(hostUrl + '/tap?x=' + x + '&y=' + y);
+        });
+    </script>
+</body>
+</html>
