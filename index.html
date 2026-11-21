@@ -2,18 +2,24 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Torch Live Remote</title>
+    <title>Torch Live Remote Control</title>
     <style>
         body { background: #090d16; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box; overflow: hidden; }
         h3 { color: #38bdf8; margin: 5px 0; font-size: 18px; }
         .status { background: rgba(56,189,248,0.1); color: #38bdf8; padding: 5px 12px; font-size: 12px; font-weight: bold; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3); margin-bottom: 8px; }
         .viewport { flex-grow: 1; display: flex; justify-content: center; align-items: center; width: 100%; max-height: calc(100vh - 80px); }
         img { max-height: 80vh; max-width: 100%; width: auto; height: auto; object-fit: contain; border: 2px solid #38bdf8; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 25px rgba(0,0,0,0.8); -webkit-user-select: none; user-select: none; touch-action: none; }
+        input { background: #1e293b; color: #fff; border: 1px solid #38bdf8; padding: 6px; font-size: 12px; border-radius: 4px; width: 70%; margin-bottom: 5px; }
+        button { background: #38bdf8; color: #0f172a; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
     <h3>Torch Live Touch Remote</h3>
-    <div class="status">🟢 LIVE 20 FPS STREAM ACTIVE • Tap / Drag to Control</div>
+    <div id="statusText" class="status">🟢 LIVE 20 FPS STREAM ACTIVE • Tap / Drag to Control</div>
+    <div id="inputBox" style="display:none; margin-bottom:10px;">
+        <input type="text" id="hostInput" placeholder="Paste Tunnel Host URL (e.g. https://xxx.pinggy.link)" />
+        <button onclick="saveHost()">Connect</button>
+    </div>
     <div class="viewport">
         <img id="remoteView" src="" />
     </div>
@@ -21,10 +27,27 @@
         let isDragging = false, startX = 0, startY = 0, isStreaming = true;
         const img = document.getElementById('remoteView');
         const urlParams = new URLSearchParams(window.location.search);
-        const hostUrl = urlParams.get('host') || '';
+        let hostUrl = urlParams.get('host') || localStorage.getItem('torch_stream_host') || '';
+
+        if (urlParams.get('host')) {
+            localStorage.setItem('torch_stream_host', urlParams.get('host'));
+        }
+
+        if (!hostUrl) {
+            document.getElementById('inputBox').style.display = 'block';
+        }
+
+        function saveHost() {
+            hostUrl = document.getElementById('hostInput').value.trim();
+            if (hostUrl) {
+                localStorage.setItem('torch_stream_host', hostUrl);
+                document.getElementById('inputBox').style.display = 'none';
+                autoStream();
+            }
+        }
 
         function autoStream() {
-            if (!isStreaming) return;
+            if (!isStreaming || !hostUrl) return;
             const nextImg = new Image();
             nextImg.onload = function() {
                 img.src = nextImg.src;
@@ -38,6 +61,7 @@
         if (hostUrl) autoStream();
 
         img.addEventListener('click', function(e) {
+            if (!hostUrl) return;
             const rect = img.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * 100;
             const y = ((e.clientY - rect.top) / rect.height) * 100;
